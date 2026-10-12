@@ -1,8 +1,14 @@
+import fs from 'node:fs';
 import dotenv from 'dotenv';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const cwd = process.cwd();
+const root = [cwd, path.join(cwd, 'server')].find((candidate) =>
+  fs.existsSync(path.join(candidate, 'src', 'config.js')),
+);
+
+if (!root) throw new Error('Unable to locate the server root directory.');
+
 dotenv.config({ path: path.join(root, '.env') });
 
 const env = process.env;

@@ -23,7 +23,7 @@ app.use(helmet({
       'script-src': ["'self'", 'https://checkout.razorpay.com'],
       'frame-src': ['https://api.razorpay.com', 'https://checkout.razorpay.com'],
       'connect-src': ["'self'", 'https://*.razorpay.com', 'https://*.supabase.co'],
-      'img-src': ["'self'", 'data:', 'blob:', 'https:', 'https://*.supabase.co', 'https://*.cloudinary.com'],
+      'img-src': ["'self'", 'data:', 'blob:', 'https://*.supabase.co', 'https://*.cloudinary.com'],
       'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       'font-src': ["'self'", 'https://fonts.gstatic.com'],
     },

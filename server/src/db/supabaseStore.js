@@ -1,11 +1,18 @@
 // Supabase / PostgreSQL adapter. Tables are defined in /supabase/schema.sql.
 // Application code uses camelCase, Postgres uses snake_case; keys are converted at this boundary.
 import { createClient } from '@supabase/supabase-js';
-import { config } from '../config.js';
+import { config, useSupabase } from '../config.js';
 
-const client = createClient(config.supabase.url, config.supabase.serviceKey, {
-  auth: { persistSession: false },
-});
+const client = useSupabase
+  ? createClient(config.supabase.url, config.supabase.serviceKey, {
+    auth: { persistSession: false },
+  })
+  : null;
+
+function getClient() {
+  if (!client) throw new Error('Supabase is not configured.');
+  return client;
+}
 
 const toSnake = (s) => s.replace(/[A-Z]/g, (c) => '_' + c.toLowerCase());
 const toCamel = (s) => s.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
@@ -22,30 +29,30 @@ export const supabaseStore = {
   kind: 'supabase',
   client,
   async list(table, filter) {
-    let q = client.from(table).select('*');
+    let q = getClient().from(table).select('*');
     if (filter) q = q.match(into(filter));
     return check(await q).map(out);
   },
   async get(table, id) {
-    return out(check(await client.from(table).select('*').eq('id', id).maybeSingle()));
+    return out(check(await getClient().from(table).select('*').eq('id', id).maybeSingle()));
   },
   async findOne(table, filter) {
-    const rows = check(await client.from(table).select('*').match(into(filter)).limit(1));
+    const rows = check(await getClient().from(table).select('*').match(into(filter)).limit(1));
     return rows[0] ? out(rows[0]) : null;
   },
   async insert(table, row) {
-    return out(check(await client.from(table).insert(into(row)).select().single()));
+    return out(check(await getClient().from(table).insert(into(row)).select().single()));
   },
   async update(table, id, patch) {
-    return out(check(await client.from(table).update(into(patch)).eq('id', id).select().maybeSingle()));
+    return out(check(await getClient().from(table).update(into(patch)).eq('id', id).select().maybeSingle()));
   },
   async remove(table, id) {
-    check(await client.from(table).delete().eq('id', id));
+    check(await getClient().from(table).delete().eq('id', id));
     return true;
   },
   async reset() {
     for (const t of ['wishlist', 'reviews', 'orders', 'ideas', 'subscribers', 'coupons', 'products', 'categories', 'users']) {
-      check(await client.from(t).delete().neq('id', ''));
+      check(await getClient().from(t).delete().neq('id', ''));
     }
   },
 };

@@ -106,13 +106,30 @@ function Section({ title, link, ready, children }) {
 export default function Home() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [productsError, setProductsError] = useState(false);
+  const [categoriesError, setCategoriesError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [qv, setQv] = useState(null);
 
   useEffect(() => {
+    let live = true;
     document.title = `${site.name} | Fun things & toys, made your way`;
-    api('/products').then(setProducts).catch(() => {});
-    api('/categories').then(setCategories).catch(() => {});
-  }, []);
+    setProductsError(false);
+    setCategoriesError(false);
+    api('/products')
+      .then((items) => { if (live) setProducts(items); })
+      .catch((error) => {
+        console.error('Failed to load homepage products:', error);
+        if (live) setProductsError(true);
+      });
+    api('/categories')
+      .then((items) => { if (live) setCategories(items); })
+      .catch((error) => {
+        console.error('Failed to load homepage categories:', error);
+        if (live) setCategoriesError(true);
+      });
+    return () => { live = false; };
+  }, [loadAttempt]);
 
   const featured = products.filter((p) => p.featured);
   const best = [...products].sort((a, b) => b.sold - a.sold || Number(b.featured) - Number(a.featured)).slice(0, 4);
@@ -123,22 +140,37 @@ export default function Home() {
     <div className="home">
       <Hero products={featured.length >= 3 ? featured : products} />
 
-      <Section ready={products.length} title="Best sellers" link={{ to: '/shop?sort=popular', label: 'Shop all' }}>
-        <div className="grid grid-4">{best.map((p) => <ProductCard key={p.id} product={p} onQuickView={setQv} />)}</div>
+      <Section ready={products.length || productsError} title="Best sellers" link={{ to: '/shop?sort=popular', label: 'Shop all' }}>
+        {productsError ? (
+          <div className="empty" role="alert">
+            <h3>We couldn't load the toys.</h3>
+            <p>Check your connection and try again.</p>
+            <button className="link-btn" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>Try again</button>
+          </div>
+        ) : (
+          <div className="grid grid-4">{best.map((p) => <ProductCard key={p.id} product={p} onQuickView={setQv} />)}</div>
+        )}
       </Section>
 
-      <Section ready={categories.length && products.length} title="Shop by category">
-        <div className="cat-tiles">
-          {categories.map((c) => {
-            const p = cover(c);
-            return (
-              <Link key={c.slug} to={`/shop${qs({ category: c.slug })}`} className="cat-tile">
-                {p && <ProductImage product={p} />}
-                <span className="cat-tile-label"><strong>{c.name}</strong><small>{c.count} {c.count === 1 ? 'toy' : 'toys'}</small></span>
-              </Link>
-            );
-          })}
-        </div>
+      <Section ready={categories.length && (products.length || productsError) || categoriesError} title="Shop by category">
+        {categoriesError ? (
+          <div className="empty" role="alert">
+            <h3>Categories couldn't be loaded.</h3>
+            <button className="link-btn" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>Try again</button>
+          </div>
+        ) : (
+          <div className="cat-tiles">
+            {categories.map((c) => {
+              const p = cover(c);
+              return (
+                <Link key={c.slug} to={`/shop${qs({ category: c.slug })}`} className="cat-tile">
+                  {p && <ProductImage product={p} />}
+                  <span className="cat-tile-label"><strong>{c.name}</strong><small>{c.count} {c.count === 1 ? 'toy' : 'toys'}</small></span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </Section>
 
       {fresh.length > 0 && (

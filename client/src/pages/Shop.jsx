@@ -22,6 +22,8 @@ export default function Shop() {
   const [params, setParams] = useSearchParams();
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState(null);
+  const [productsError, setProductsError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [qv, setQv] = useState(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [q, setQ] = useState(params.get('q') || '');
@@ -41,7 +43,11 @@ export default function Shop() {
     setParams(next, { replace: true });
   };
 
-  useEffect(() => { api('/categories').then(setCategories).catch(() => {}); }, []);
+  useEffect(() => {
+    api('/categories')
+      .then(setCategories)
+      .catch((error) => console.error('Failed to load shop categories:', error));
+  }, []);
   useEffect(() => { setQ(query); }, [query]);
 
   // Debounce typing into the URL.
@@ -54,11 +60,19 @@ export default function Shop() {
 
   useEffect(() => {
     let live = true;
+    setProducts(null);
+    setProductsError(false);
     api('/products' + qs({ category, sort, min, max, q: query, inStock: inStock ? 1 : '' }))
       .then((list) => live && setProducts(list))
-      .catch(() => live && setProducts([]));
+      .catch((error) => {
+        console.error('Failed to load shop products:', error);
+        if (live) {
+          setProductsError(true);
+          setProducts([]);
+        }
+      });
     return () => { live = false; };
-  }, [category, sort, min, max, query, inStock]);
+  }, [category, sort, min, max, query, inStock, loadAttempt]);
 
   useLayoutEffect(() => {
     if (!products?.length || reducedMotion() || !grid.current) return;
@@ -128,7 +142,16 @@ export default function Shop() {
         {activeFilters > 0 && <button className="link-btn" onClick={() => set({ min: '', max: '', inStock: '' })}>Clear filters</button>}
       </div>
 
-      {!products ? <Spinner /> : products.length === 0 ? (
+      {!products ? <Spinner /> : productsError ? (
+        <div role="alert">
+          <Empty
+            title="We couldn't load these toys."
+            action={<button className="link-btn" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>Try again</button>}
+          >
+            Check your connection and try again.
+          </Empty>
+        </div>
+      ) : products.length === 0 ? (
         <Empty
           title={query ? `Nothing matches "${query}" yet.` : 'Nothing here yet.'}
           action={<p>Can't find it? <Link to="/custom" className="link-arrow">Ask us to make it <Icon name="arrow" size={16} /></Link></p>}

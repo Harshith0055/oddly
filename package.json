@@ -2,7 +2,7 @@
   "name": "formo",
   "private": true,
   "scripts": {
-    "install:all": "npm install && npm install --prefix server && npm install --prefix client",
+    "install:all": "npm install && npm install --prefix server && npm install --include=dev --prefix client",
     "dev": "concurrently -n api,web -c gray,cyan \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
     "seed": "npm run seed --prefix server",
     "build": "npm run build --prefix client",

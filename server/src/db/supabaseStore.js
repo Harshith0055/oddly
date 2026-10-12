@@ -1,9 +1,10 @@
 // Supabase / PostgreSQL adapter. Tables are defined in /supabase/schema.sql.
 // Application code uses camelCase, Postgres uses snake_case; keys are converted at this boundary.
 import { createClient } from '@supabase/supabase-js';
-import { config } from '../config.js';
+import { config, useSupabase } from '../config.js';
 
-const client = createClient(config.supabase.url, config.supabase.serviceKey, {
+// Created only when configured, so this module can be imported statically by db/index.js.
+const client = useSupabase && createClient(config.supabase.url, config.supabase.serviceKey, {
   auth: { persistSession: false },
 });
 

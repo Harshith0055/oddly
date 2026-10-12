@@ -5,9 +5,7 @@
 
 [build.environment]
   NODE_VERSION = "22"
-
-[functions]
-  node_bundler = "esbuild"
+  SECRETS_SCAN_OMIT_KEYS = "CORS_ORIGINS,PUBLIC_URL"
 
 [[redirects]]
   from = "/api/*"
